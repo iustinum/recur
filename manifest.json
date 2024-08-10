@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "LeetCode Spaced Repetition",
+  "version": "1.0",
+  "description": "Integrate spaced repetition into your LeetCode practice",
+  "permissions": ["storage", "https://leetcode.com/*"],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["content/content.js"]
+    }
+  ],
+  "browser_action": {
+    "default_popup": "popup/popup.html"
+  },
+
+  "web_accessible_resources": ["overview/overview.html"]
+}
