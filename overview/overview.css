@@ -63,3 +63,29 @@ button {
 button:hover {
   background-color: #45a049;
 }
+
+#dataManagement {
+  margin-bottom: 20px;
+}
+
+#dataManagement button {
+  margin-right: 10px;
+  padding: 5px 10px;
+  font-size: 14px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#exportData, #importData {
+  background-color: #4CAF50;
+}
+
+#resetData {
+  background-color: #f44336;
+}
+
+#dataManagement button:hover {
+  opacity: 0.8;
+}

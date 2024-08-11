@@ -1,5 +1,9 @@
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({ problems: {} });
+  chrome.storage.sync.get("leetCodeProblems", (data) => {
+    if (!data.leetCodeProblems) {
+      chrome.storage.sync.set({ leetCodeProblems: {} });
+    }
+  });
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -13,27 +17,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true; // Keep the message channel open for the async response
 });
 
-function saveProblem(problem) {
-  chrome.storage.local.get("problems", (data) => {
-    const problems = data.problems || {};
-    const existingProblem = problems[problem.titleSlug] || {};
+function saveProblem(problem, callback) {
+  chrome.storage.sync.get("leetCodeProblems", (data) => {
+    const problems = data.leetCodeProblems || {};
     problems[problem.titleSlug] = {
-      ...existingProblem,
-      ...problem,
+      title: problem.title,
+      titleSlug: problem.titleSlug,
+      difficulty: problem.difficulty,
+      url: problem.url,
       lastReviewed: Date.now(),
       nextReview: calculateNextReview(
         Date.now(),
-        existingProblem.reviewCount || 0
+        (problems[problem.titleSlug]?.reviewCount || 0) + 1
       ),
-      reviewCount: (existingProblem.reviewCount || 0) + 1,
+      reviewCount: (problems[problem.titleSlug]?.reviewCount || 0) + 1,
     };
-    chrome.storage.local.set({ problems });
+    chrome.storage.sync.set({ leetCodeProblems: problems }, callback);
   });
 }
 
 function updateProblemReview(titleSlug, callback) {
-  chrome.storage.local.get("problems", (data) => {
-    const problems = data.problems || {};
+  chrome.storage.sync.get("leetCodeProblems", (data) => {
+    const problems = data.leetCodeProblems || {};
     if (problems[titleSlug]) {
       problems[titleSlug] = {
         ...problems[titleSlug],
@@ -44,7 +49,7 @@ function updateProblemReview(titleSlug, callback) {
         ),
         reviewCount: (problems[titleSlug].reviewCount || 0) + 1,
       };
-      chrome.storage.local.set({ problems }, callback);
+      chrome.storage.sync.set({ leetCodeProblems: problems }, callback);
     } else {
       callback();
     }
@@ -52,8 +57,8 @@ function updateProblemReview(titleSlug, callback) {
 }
 
 function getNextReviewProblem(sendResponse) {
-  chrome.storage.local.get("problems", (data) => {
-    const problems = data.problems || {};
+  chrome.storage.sync.get("leetCodeProblems", (data) => {
+    const problems = data.leetCodeProblems || {};
     const now = Date.now();
     const nextProblem = Object.values(problems).reduce((acc, problem) => {
       if (!acc || problem.nextReview < acc.nextReview) {

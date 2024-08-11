@@ -1,16 +1,80 @@
 document.addEventListener("DOMContentLoaded", () => {
   loadProblems();
+  setupDataManagement();
 });
 
 function loadProblems() {
-  chrome.storage.local.get("problems", (data) => {
-    const problems = data.problems || {};
+  chrome.storage.sync.get("leetCodeProblems", (data) => {
+    const problems = data.leetCodeProblems || {};
     const sortedProblems = Object.values(problems).sort(
       (a, b) => a.nextReview - b.nextReview
     );
     updateStats(problems);
     displayProblems(sortedProblems);
   });
+}
+
+function setupDataManagement() {
+  const exportButton = document.getElementById("exportData");
+  const importButton = document.getElementById("importData");
+  const resetButton = document.getElementById('resetData');
+  const fileInput = document.getElementById("fileInput");
+
+  exportButton.addEventListener("click", exportData);
+  importButton.addEventListener("click", () => fileInput.click());
+  resetButton.addEventListener('click', resetData);
+  fileInput.addEventListener("change", importData);
+}
+
+function exportData() {
+  chrome.storage.sync.get("leetCodeProblems", (data) => {
+    const problems = data.leetCodeProblems || {};
+    const blob = new Blob(
+      [JSON.stringify({ leetCodeProblems: problems }, null, 2)],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "leetcode_spaced_repetition_data.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.leetCodeProblems) {
+          chrome.storage.sync.set(
+            { leetCodeProblems: data.leetCodeProblems },
+            () => {
+              alert("Data imported successfully!");
+              loadProblems();
+            }
+          );
+        } else {
+          throw new Error("Invalid data format");
+        }
+      } catch (error) {
+        alert("Error importing data. Please make sure the file is valid.");
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+function resetData() {
+  if (confirm('Are you sure you want to reset all data? This action cannot be undone.')) {
+    chrome.storage.sync.set({ leetCodeProblems: {} }, () => {
+      alert('All data has been reset.');
+      loadProblems();
+    });
+  }
 }
 
 function updateStats(problems) {
@@ -66,8 +130,8 @@ function displayProblems(problems) {
 }
 
 function reviewProblem(titleSlug) {
-  chrome.storage.local.get("problems", (data) => {
-    const problems = data.problems || {};
+  chrome.storage.sync.get("leetCodeProblems", (data) => {
+    const problems = data.leetCodeProblems || {};
     const problem = problems[titleSlug];
     if (problem) {
       chrome.tabs.create({ url: problem.url });
